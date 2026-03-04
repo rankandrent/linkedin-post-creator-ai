@@ -18,11 +18,51 @@ export default function App() {
   const [refImage, setRefImage] = useState<string | null>(null);
   const [topic, setTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingTopic, setIsGeneratingTopic] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const refImageInputRef = useRef<HTMLInputElement>(null);
+
+  const BRAND_GUIDELINES = `
+    Accufin.io is a finance-focused platform serving startups and SMEs with bookkeeping, AP/AR, fractional CFO services, equity reporting, and audit prep.
+    Target Audience: Founders, finance teams, and investors.
+    Brand Voice: Authoritative, helpful, and approachable.
+    
+    Content Types to generate:
+    1. Educational / Thought Leadership (Accounting tips, Cash flow guidance, Startup finance education, Audit prep).
+    2. Problem-Solution / Pain-Point (Startup finance pain points, Fractional CFO value, Automation benefits).
+    3. Case Studies / Success Stories (Faster month-end closing, smoother audits).
+    4. Quick Tips / Bite-Sized Advice (Finance hacks, CFO insights).
+    5. Industry Insights / Trends (Fundraising trends, regulatory updates).
+    
+    Template: Problem -> Resolution -> Benefit.
+  `;
+
+  const generateTopic = async () => {
+    setIsGeneratingTopic(true);
+    setError(null);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: `Based on these brand guidelines: ${BRAND_GUIDELINES}, generate ONE high-impact, professional LinkedIn post topic/title. 
+        It should be concise (under 15 words) and highly engaging for founders. 
+        Return ONLY the topic text, no quotes or extra explanation.`,
+      });
+      
+      const newTopic = response.text?.trim();
+      if (newTopic) {
+        setTopic(newTopic);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError('Failed to generate topic idea.');
+    } finally {
+      setIsGeneratingTopic(false);
+    }
+  };
 
   const convertToPng = (dataUrl: string): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -87,12 +127,12 @@ export default function App() {
         { text: `Create a professional LinkedIn post image with the following layout and content:
         
         LAYOUT REQUIREMENTS:
-        1. LOGO: Place the provided brand logo at the TOP-LEFT corner. Do NOT use it as a watermark.
+        1. LOGO: Place the provided brand logo at the TOP-LEFT corner. Do NOT use it as a watermark, background element, or in the center.
         2. HASHTAGS: Place 2-3 relevant hashtags (e.g., #FinTech, #Business) in small pill-shaped boxes at the TOP-RIGHT corner.
         3. TITLE: A large, bold, high-impact title in the center-top area: "${topic}".
         4. BULLET POINTS: Below the title, include 3-4 professional bullet points related to the topic. Each bullet MUST start with a clean "up-right arrow" icon (↗).
-        5. CALL TO ACTION (CTA): At the bottom, include a strong call to action text (e.g., "SAVE TIME. REDUCE STRESS. BOOST ACCURACY."). The text should be bold, all-caps, and professional. It should NOT be inside a solid colored box or bar. It should be transparent or have a very subtle, non-solid shape (like a light capsule outline) so it doesn't look like a clickable button. Use the brand color #2D64E3 for the text itself.
-        6. BACKGROUND: Use a clean, white/off-white background with very subtle professional patterns (like thin grey waves or a light grid).
+        5. CALL TO ACTION (CTA): At the bottom, include a strong call to action text (e.g., "SAVE TIME. REDUCE STRESS. BOOST ACCURACY."). The text MUST be bold, all-caps, and professional. It MUST NOT be inside a solid colored box, bar, or rectangle. It should be transparent or have a very subtle, thin outline (like a light capsule shape) so it doesn't look like a clickable button. Use the brand color #2D64E3 for the text itself. Ensure it is perfectly centered at the bottom.
+        6. BACKGROUND: Use a clean, white/off-white background with very subtle professional patterns (like thin grey waves or a light grid). Do NOT add any extra logos in the background.
         
         STYLE:
         - Modern, minimalist, and high-end corporate aesthetic.
@@ -181,7 +221,21 @@ export default function App() {
             <div className="space-y-6">
               {/* Topic Input */}
               <div>
-                <label className="block text-[10px] font-black text-[#1D1D1D] mb-2 uppercase tracking-wider">Topic / Description</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-[10px] font-black text-[#1D1D1D] uppercase tracking-wider">Topic / Description</label>
+                  <button 
+                    onClick={generateTopic}
+                    disabled={isGeneratingTopic}
+                    className="flex items-center gap-1.5 text-[10px] font-bold text-[#2D64E3] hover:text-[#2D64E3]/80 transition-colors disabled:opacity-50"
+                  >
+                    {isGeneratingTopic ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-3 h-3" />
+                    )}
+                    {isGeneratingTopic ? 'Generating...' : 'Generate Idea'}
+                  </button>
+                </div>
                 <textarea
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
