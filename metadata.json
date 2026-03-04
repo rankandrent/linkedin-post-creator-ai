@@ -1,0 +1,5 @@
+{
+  "name": "LinkedIn Post Creator AI",
+  "description": "Generate professional LinkedIn post images by combining your logo, topic, and reference images using Gemini AI.",
+  "requestFramePermissions": []
+}
